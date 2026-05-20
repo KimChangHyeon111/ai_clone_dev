@@ -11,6 +11,7 @@ from typing import List, Tuple
 import vertexai
 from google import genai
 from google.genai import types
+from google.cloud import storage
 from vertexai.generative_models import GenerativeModel, GenerationConfig
 
 from DataLoader import DataLoader
@@ -133,6 +134,8 @@ class MassSimulationManager:
 class PersonaAgent:
     def __init__(
         self,
+        project_id: str,
+        bucket_name: str,
         srg_key: str,
         fgi_profile: dict,
         sys_tmpl_path: str,
