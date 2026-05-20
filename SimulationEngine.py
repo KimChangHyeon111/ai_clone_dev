@@ -14,7 +14,7 @@ from google.genai import types
 from vertexai.generative_models import GenerativeModel, GenerationConfig
 
 from DataLoader import DataLoader
-from ContextManager import ContextManager, FGIDataSchema
+from ContextManager import ContextManager, FGIDataSchema, SimulationDataSchema
 from HybridMemoryManager import HybridMemoryManager
 
 
