@@ -113,7 +113,7 @@ class HybridMemoryManager:
 
     def _summarize_context(self, target: str):
         if target == "ML":
-            prompt = f"다음 구매 이력을 한 문단으로 요약하세요.\n[기존 요약]: {self.past_ml_summary}\n[추가 이력]: {json.dumps(self.recent_ml, ensure_ascii=False)}"
+            prompt = f"다음 구매 이력을 한 문단으로 요약하세요.\n[기존 요약]: {self.past_ml_summary}\n[추가 이력]: {json.dumps(self.recent_ml, ensure_ascii=False, default=str)}"
             try:
                 self.past_ml_summary = self.gemini_model.generate_content(prompt).text.strip()
             except Exception:
