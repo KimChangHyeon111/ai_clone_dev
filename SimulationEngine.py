@@ -2,6 +2,7 @@ import io
 import json
 import uuid
 import polars as pl
+import numpy as np
 import os
 import json
 from typing import List, Tuple
@@ -157,6 +158,15 @@ class PersonaAgent:
             "ml_transaction_history": fgi_profile.get("ml", [])
         }
         self.is_valid = bool(self.profile["ms_core_mindset"])
+        
+        # =====================================================================
+        # 💡 [추가] 에이전트 장기 기억 장치 (Vector DB) 탑재
+        # =====================================================================
+        self.full_ml_history = fgi_profile.get("full_ml", [])
+        self.ml_embeddings = fgi_profile.get("ml_embeddings", np.array([]))
+        
+        self.full_pixel = fgi_profile.get("full_pixel", [])
+        self.pixel_embeddings = fgi_profile.get("pixel_embeddings", np.array([]))
 
     def process_interviewer_turn(self, interviewer_input: str, promo_info: str = "프로모션 정보 없음") -> str:
         if not self.is_valid:
