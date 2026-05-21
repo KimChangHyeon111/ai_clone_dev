@@ -13,6 +13,7 @@ class SimulationDataSchema(BaseModel):
 
     ms: str = Field(..., min_length=5, description='페르소나의 핵심 마인드셋', alias='MS')
     ml: Optional[List[Any]] = Field(default=[], description='관련 상품 거래 이력', alias='ML')
+    pixel: Optional[List[Any]] = Field(default=[], description='고객 마이크로 어트리뷰트', alias='PIXEL')
     promo_info: str = Field(..., description="타겟 상품의 프로모션 정보", alias='PROMOTION_INFO')
 
 class FGIDataSchema(SimulationDataSchema):
