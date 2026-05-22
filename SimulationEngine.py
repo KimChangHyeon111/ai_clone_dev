@@ -197,11 +197,19 @@ class PersonaAgent:
             dynamic_ml = self._retrieve_dynamic_context(query_vector, self.ml_embeddings, self.full_ml_history, threshold=0.7)
             dynamic_pixel = self._retrieve_dynamic_context(query_vector, self.pixel_embeddings, self.full_pixel, threshold=0.7)
 
+            self.memory.add_dynamic_context(dynamic_ml=dynamic_ml, dynamic_pixel=dynamic_pixel)
+
+        base_ml = self.profile.get("ml_transaction_history", [])
+        base_pixel = self.profile.get("pixel", [])
+
+        combined_ml = self.memory.get_combined_ml(base_ml)
+        combined_pixel = self.memory.get_combined_pixel(base_pixel)
+
         # 💡 [수정] FGIDataSchema에 고정된 ml 대신 검색된 dynamic_ml, dynamic_pixel 주입
         valid_data = FGIDataSchema(
-            ms=self.profile["ms_core_mindset"],
-            ml=dynamic_ml,             
-            pixel=dynamic_pixel,       
+            ms=self.profile.get("ms_core_mindset",""),
+            ml=combined_ml,
+            pixel=combined_pixel,       
             promo_info=promo_info,
             conversation_history=self.memory.get_formatted_history(),
             user_input=interviewer_input
