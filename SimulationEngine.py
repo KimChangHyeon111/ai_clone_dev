@@ -143,16 +143,17 @@ class PersonaAgent:
         user_tmpl_path: str,
         location: str = "global",
         context_manager = None,
-		memory_manager = None
+		memory_manager = None,
+        embedder_model = None, 
     ):
         self.srg_key = srg_key
 
         self.sys_tmpl_path = sys_tmpl_path
         self.user_tmpl_path = user_tmpl_path
         self.ctx = context_manager or ContextManager()
-
         self.memory = memory_manager or HybridMemoryManager()
         self.client = genai.Client(vertexai=True, project=project_id, location=location)
+        self.embedder_model = embedder_model # 💡 [추가] 인스턴스 변수 저장
 
         self.profile = {
             "ms_core_mindset": fgi_profile.get("ms", ""),
@@ -165,14 +166,46 @@ class PersonaAgent:
         # =====================================================================
         self.full_ml_history = fgi_profile.get("full_ml", [])
         self.ml_embeddings = fgi_profile.get("ml_embeddings", np.array([]))
-
         self.full_pixel = fgi_profile.get("full_pixel", [])
         self.pixel_embeddings = fgi_profile.get("pixel_embeddings", np.array([]))
+
+    # 💡 [추가] MultiAgentOrchestrator에 있던 동적 인출 함수 복사
+    def _retrieve_dynamic_context(self, query_vector: np.ndarray, embeddings: np.ndarray, raw_data: list, threshold: float = 0.7) -> list:
+        if not raw_data or embeddings is None or len(raw_data) == 0:
+            return []
+
+        similarities = np.dot(embeddings, query_vector.T).flatten()
+        sorted_indices = similarities.argsort()[::-1]
+        valid_indices = [idx for idx in sorted_indices if similarities[idx] >= threshold]
+
+        top_1_idx = sorted_indices[0]
+        if top_1_idx not in valid_indices:
+            valid_indices.insert(0, top_1_idx)
+
+        return [raw_data[i] for i in valid_indices]
 
     def process_interviewer_turn(self, interviewer_input: str, promo_info: str = "프로모션 정보 없음", DEBUG = True) -> str:
         if not self.is_valid:
             return "[시스템 알림] 데이터가 부족합니다."
+        
+        # 💡 [추가] 질문을 벡터화하여 동적 컨텍스트 검색
+        dynamic_ml = self.profile["ml_transaction_history"] # 기본값
+        dynamic_pixel = [] # 기본값
+        
+        if self.embedder_model:
+            query_vector = self.embedder_model.encode([interviewer_input], normalize_embeddings=True).astype(np.float32)
+            dynamic_ml = self._retrieve_dynamic_context(query_vector, self.ml_embeddings, self.full_ml_history, threshold=0.7)
+            dynamic_pixel = self._retrieve_dynamic_context(query_vector, self.pixel_embeddings, self.full_pixel, threshold=0.7)
 
+        # 💡 [수정] FGIDataSchema에 고정된 ml 대신 검색된 dynamic_ml, dynamic_pixel 주입
+        valid_data = FGIDataSchema(
+            ms=self.profile["ms_core_mindset"],
+            ml=dynamic_ml,             
+            pixel=dynamic_pixel,       
+            promo_info=promo_info,
+            conversation_history=self.memory.get_formatted_history(),
+            user_input=interviewer_input
+        )
         valid_data = FGIDataSchema(
             ms=self.profile["ms_core_mindset"],
             ml=self.profile["ml_transaction_history"],
