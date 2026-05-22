@@ -142,7 +142,8 @@ class PersonaAgent:
         sys_tmpl_path: str,
         user_tmpl_path: str,
         location: str = "global",
-        context_manager = None
+        context_manager = None,
+		memory_manager = None
     ):
         self.srg_key = srg_key
 
@@ -150,7 +151,7 @@ class PersonaAgent:
         self.user_tmpl_path = user_tmpl_path
         self.ctx = context_manager or ContextManager()
 
-        self.memory = HybridMemoryManager()
+        self.memory = memory_manager or HybridMemoryManager()
         self.client = genai.Client(vertexai=True, project=project_id, location=location)
 
         self.profile = {
@@ -158,13 +159,13 @@ class PersonaAgent:
             "ml_transaction_history": fgi_profile.get("ml", [])
         }
         self.is_valid = bool(self.profile["ms_core_mindset"])
-        
+
         # =====================================================================
         # 💡 [추가] 에이전트 장기 기억 장치 (Vector DB) 탑재
         # =====================================================================
         self.full_ml_history = fgi_profile.get("full_ml", [])
         self.ml_embeddings = fgi_profile.get("ml_embeddings", np.array([]))
-        
+
         self.full_pixel = fgi_profile.get("full_pixel", [])
         self.pixel_embeddings = fgi_profile.get("pixel_embeddings", np.array([]))
 
@@ -217,18 +218,18 @@ class MultiPersonaAgent:
         self.sys_tmpl_path = sys_tmpl_path
         self.user_tmpl_path = user_tmpl_path
         self.ctx = context_manager or ContextManager()
-        
+
         # 모델 클라이언트 초기화
         self.client = genai.Client(vertexai=True, project=project_id, location=location)
-        
+
         # 참가자 상태 관리
         self.participants = {}
         self.names = []
-        
+
         for i, srg_key in enumerate(srg_keys):
             name = f"Customer_{chr(65+i)}" # Customer_A, Customer_B...
             self.names.append(name)
-            
+
             profile = fgi_profiles[i]
             self.participants[name] = {
                 "srg_key": srg_key,
@@ -236,16 +237,16 @@ class MultiPersonaAgent:
                 "ml_transaction_history": profile.get("ml", []),
                 "is_valid": bool(profile.get("ms", ""))
             }
-            
+
         # [핵심] FGI 룸에 참석한 전원의 대화를 기록하기 위해 메모리 매니저를 하나만 사용
         self.shared_memory = HybridMemoryManager()
-        
+
         self.last_agent = self.names[-1] if self.names else None
         self.free_talk_mode = False
 
     def _get_next_agent(self) -> str:
         """다음 차례의 에이전트를 반환합니다."""
-        if not self.names: 
+        if not self.names:
             return ""
         idx = self.names.index(self.last_agent)
         next_idx = (idx + 1) % len(self.names)
@@ -258,16 +259,16 @@ class MultiPersonaAgent:
         """
         target = None
         display_msg = ""
-        
+
         # --- 1. 사용자 입력 라우팅 및 지목 로직 ---
         input_upper = user_input.upper()
         target_candidate = f"Customer_{input_upper}"
-        
+
         # A, B 처럼 단일 알파벳만 입력한 경우 (자유 토론 해제 후 해당 유저 지목)
         if target_candidate in self.names and len(user_input) == 1:
             target = target_candidate
             self.free_talk_mode = False
-            
+
         # 텍스트 내용이 있는 경우
         elif user_input.strip() != '':
             if re.search(r'@free_talk', user_input, re.IGNORECASE):
@@ -285,16 +286,16 @@ class MultiPersonaAgent:
                         display_msg = re.sub(fr'@{char}', f'@{name}님', user_input, flags=re.IGNORECASE)
                         mentioned = True
                         break
-                        
+
                 # 지목 태그 없이 질문만 들어온 경우
                 if not mentioned:
                     self.free_talk_mode = False
                     target = self._get_next_agent()
                     display_msg = user_input
-            
+
             # Moderator(사회자) 발화를 공유 메모리에 기록
             self.shared_memory.add_interaction("Moderator", display_msg)
-            
+
         # 엔터만 친 경우 (기존 모드 유지하며 교대)
         else:
             target = self._get_next_agent()
@@ -324,7 +325,7 @@ class MultiPersonaAgent:
 
         # 전체 공유 히스토리 가져오기
         history_str = self.shared_memory.get_formatted_history()
-        
+
         # 스키마 바인딩 (USER_INPUT 필드에 행동 지침과 현재 상황을 밀어넣어 프롬프트 완성)
         valid_data = FGIDataSchema(
             ms=target_profile["ms_core_mindset"],
@@ -350,16 +351,16 @@ class MultiPersonaAgent:
                 response_mime_type="application/json"
             )
         )
-        
+
         # 결과 파싱 (fgi_user.md 포맷에서 response 키 추출)
         try:
             res_data = json.loads(response.text)
             response_text = res_data.get("response", response.text).strip()
         except json.JSONDecodeError:
             response_text = response.text.strip()
-            
+
         # 에이전트의 답변을 공유 메모리에 기록
         self.shared_memory.add_interaction(current_name, response_text)
-        
+
         self.last_agent = current_name
         return current_name, display_msg, response_text
