@@ -2,6 +2,7 @@ import re
 import json
 from typing import List, Tuple
 from google.genai import types
+import numpy as np 
 
 # 💡 깃허브 원본 클래스 임포트
 from SimulationEngine import PersonaAgent
