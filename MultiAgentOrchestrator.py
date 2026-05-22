@@ -98,7 +98,7 @@ class MultiAgentOrchestrator:
         # 결과 리스트 반환 (점수가 높은 순으로)
         return [raw_data[i] for i in valid_indices]
 
-    def process_turn(self, user_input: str, promo_info: str) -> Tuple[str, str, str]:
+    def process_turn(self, user_input: str, promo_info: str, debug = True) -> Tuple[str, str, str]:
         target = None
         display_msg = ""
         input_upper = user_input.upper()
@@ -218,8 +218,6 @@ class MultiAgentOrchestrator:
         # =====================================================================
         # 💡 [여기에 추가] 프롬프트 전체 출력 (디버깅용)
         # =====================================================================
-        DEBUG = True  # 확인이 끝나면 False로 변경하세요.
-
         if DEBUG:
             print("\n" + "="*40 + f" [DEBUG: {current_name}에게 주입된 프롬프트] " + "="*40)
             print("[SYSTEM INSTRUCTION]")
