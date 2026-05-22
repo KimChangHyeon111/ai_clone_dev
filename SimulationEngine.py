@@ -206,13 +206,6 @@ class PersonaAgent:
             conversation_history=self.memory.get_formatted_history(),
             user_input=interviewer_input
         )
-        valid_data = FGIDataSchema(
-            ms=self.profile["ms_core_mindset"],
-            ml=self.profile["ml_transaction_history"],
-            promo_info=promo_info,
-            conversation_history=self.memory.get_formatted_history(),
-            user_input=interviewer_input
-        )
 
         sys_inst, user_content = self.ctx.build_prompt(
             sys_path=self.sys_tmpl_path,
