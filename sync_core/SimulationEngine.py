@@ -15,10 +15,11 @@ from google.genai import types
 from google.cloud import storage
 from vertexai.generative_models import GenerativeModel, GenerationConfig
 
-from DataLoader import DataLoader
-from ContextManager import ContextManager, FGIDataSchema, SimulationDataSchema
-from HybridMemoryManager import HybridMemoryManager
-from PersonaAgent import PersonaAgent
+from common.schemas import FGIDataSchema, SimulationDataSchema
+from sync_core.DataLoader import DataLoader
+from sync_core.ContextManager import ContextManager
+from sync_core.HybridMemoryManager import HybridMemoryManager
+from sync_core.PersonaAgent import PersonaAgent
 
 class SimulationEngine:
     def __init__(

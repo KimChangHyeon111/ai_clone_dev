@@ -5,24 +5,8 @@ from google.cloud import storage
 from jinja2 import Template
 from pydantic import BaseModel, ConfigDict, Field
 
-# ---------------------------------------------------------
-# 1. 입력 데이터 스키마 정의
-# ---------------------------------------------------------
-class SimulationDataSchema(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True, populate_by_name=True)
+from common.schemas import SimulationDataSchema, FGIDataSchema
 
-    ms: str = Field(..., min_length=5, description='페르소나의 핵심 마인드셋', alias='MS')
-    ml: Optional[List[Any]] = Field(default=[], description='관련 상품 거래 이력', alias='ML')
-    pixel: Optional[List[Any]] = Field(default=[], description='고객 마이크로 어트리뷰트', alias='PIXEL')
-    promo_info: str = Field(..., description="타겟 상품의 프로모션 정보", alias='PROMOTION_INFO')
-
-class FGIDataSchema(SimulationDataSchema):
-    conversation_history: str = Field(default='', description='이전 대화 맥락', alias='CONVERSATION_HISTORY')
-    user_input: str = Field(..., description='현재 인터뷰어의 질문 또는 입력', alias='USER_INPUT')
-
-# ---------------------------------------------------------
-# 2. 통합 ContextManager
-# ---------------------------------------------------------
 class ContextManager:
     """단일 매니저로 시뮬레이션, FGI, 일반 프롬프트 렌더링을 모두 처리합니다."""
 
