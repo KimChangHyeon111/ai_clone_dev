@@ -1,5 +1,5 @@
 import numpy as np
-
+import json
 # GCP SDK
 from google import genai
 from google.genai import types
@@ -7,6 +7,7 @@ from google.genai import types
 from sync_core.ContextManager import ContextManager
 from sync_core.HybridMemoryManager import HybridMemoryManager
 from common.schemas import FGIDataSchema
+from common.utils import *
 
 class PersonaAgent:
     def __init__(
@@ -18,7 +19,8 @@ class PersonaAgent:
         sys_tmpl_path: str,
         user_tmpl_path: str,
         location: str = "global",
-        context_manager = None
+        model_name: str ="gemini-2.5-flash-lite",
+        context_manager = None        
     ):
         self.srg_key = srg_key
 
@@ -34,7 +36,7 @@ class PersonaAgent:
             "ml_transaction_history": fgi_profile.get("ml", [])
         }
         self.is_valid = bool(self.profile["ms_core_mindset"])
-
+        self.model_name = model_name
         # =====================================================================
         # 💡 [추가] 에이전트 장기 기억 장치 (Vector DB) 탑재
         # =====================================================================
@@ -44,7 +46,7 @@ class PersonaAgent:
         self.full_pixel = fgi_profile.get("full_pixel", [])
         self.pixel_embeddings = fgi_profile.get("pixel_embeddings", np.array([]))
 
-    def process_interviewer_turn(self, interviewer_input: str, promo_info: str = "프로모션 정보 없음") -> str:
+    def process_interviewer_turn(self, interviewer_input: str, promo_info: str = "프로모션 정보 없음", DEBUG: bool = False) -> str:
         if not self.is_valid:
             return "[시스템 알림] 데이터가 부족합니다."
 
@@ -63,15 +65,30 @@ class PersonaAgent:
         )
 
         prompt = f"Interviewer: {user_content}\nCustomer: "
-
+        # =====================================================================
+        # 💡 2. [디버깅 추가] 모델 호출 직전에 프롬프트 전체 출력
+        # =====================================================================
+        if DEBUG:
+            print("\n" + "="*40 + f" [DEBUG: {self.srg_key}(PersonaAgent) 프롬프트] " + "="*40)
+            print("-" * 100)
+            print("[SYSTEM INSTRUCTION]")
+            print(sys_inst)
+            print("-" * 100)
+            print("[USER CONTENT]")
+            print(prompt)
+            print("="*105 + "\n")
+        # =====================================================================
         response = self.client.models.generate_content(
-            model="gemini-2.5-flash-lite",
+            model=self.model_name,
             contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction=sys_inst,
                 temperature=0.6
             )
         )
+
+
+
         try:
             clean_txt = clean_json_string(response.text)
             res_data = json.loads(clean_txt)

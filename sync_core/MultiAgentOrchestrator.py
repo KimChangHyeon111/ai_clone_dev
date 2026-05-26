@@ -1,7 +1,7 @@
 import re
 import json
 import numpy as np
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from google.genai import types
 
 # 💡 깃허브 원본 클래스 임포트

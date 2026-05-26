@@ -47,7 +47,9 @@ class DataLoader:
     def ms_table(self) -> pl.DataFrame:
         if self._ms_table is None:
             print("MS 테이블 로드 중...")
-            self._ms_table = pl.read_parquet(self.ms_table_path)
+            self._ms_table = pl.read_parquet(self.ms_table_path).filter(
+                pl.col("ms_full").is_not_null() & (pl.col("ms_full") != "")
+            )
         return self._ms_table
 
     @property

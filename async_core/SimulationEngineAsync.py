@@ -11,7 +11,7 @@ from google.genai import types
 from google.cloud import storage
 
 # 💡 비동기로 개편된 ContextManagerAsync 스키마 임포트
-from common.schemas import ContextManagerAsync, SimulationDataSchema
+from async_core.ContextManagerAsync import ContextManagerAsync, SimulationDataSchema
 
 class SimulationEngineAsync:
     def __init__(
