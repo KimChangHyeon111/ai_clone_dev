@@ -6,7 +6,7 @@ from google.genai import types
 
 # 💡 깃허브 원본 클래스 임포트
 from sync_core.PersonaAgent import PersonaAgent
-from sync_core.ContextManager impor ContextManager
+from sync_core.ContextManager import ContextManager
 from common.utils import *
 from common.schemas import FGIDataSchema
 
