@@ -131,6 +131,31 @@ class MultiAgentOrchestrator:
                 target = self._get_next_agent()
 
         return chat_mode, targeted_agent, target, display_msg
+        
+    def _retrieve_dynamic_context(self, query_vector: np.ndarray, embeddings: np.ndarray, raw_data: list, threshold: float = 0.7) -> list:
+        """
+        임계치(threshold) 이상의 데이터를 모두 가져오되,
+        만약 조건을 만족하는 데이터가 하나도 없더라도 가장 유사한 Top 1은 무조건 반환합니다.
+        """
+        if not raw_data or embeddings is None or len(raw_data) == 0:
+            return []
+
+        # 1. 코사인 유사도 계산 (벡터가 정규화된 상태라고 가정)
+        similarities = np.dot(embeddings, query_vector.T).flatten()
+
+        # 2. 유사도 내림차순 정렬 인덱스
+        sorted_indices = similarities.argsort()[::-1]
+
+        # 3. 임계치(threshold) 이상인 인덱스만 필터링
+        valid_indices = [idx for idx in sorted_indices if similarities[idx] >= threshold]
+
+        # 4. 💡 [핵심] 만약 임계치를 넘은 게 하나도 없거나, Top 1이 누락되었다면 강제 추가
+        top_1_idx = sorted_indices[0]
+        if top_1_idx not in valid_indices:
+            valid_indices.insert(0, top_1_idx) # 맨 앞에 1등 꽂아주기
+
+        # 결과 리스트 반환 (점수가 높은 순으로)
+        return [raw_data[i] for i in valid_indices]
 
     def process_turn(self, user_input: str, promo_info: str, DEBUG = False, temperature = 0.5) -> Tuple[str, str, str]:
         target = None
