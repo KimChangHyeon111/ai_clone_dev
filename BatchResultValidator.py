@@ -168,7 +168,7 @@ class BatchResultValidator:
 
         # 1-B. 맥락 불일치 탐지
         df = df.with_columns(
-            pl.col("primary_reason").map_elements(
+            pl.col("primary_reason").fill_null('').map_elements(
                 lambda x: list({t.form for t in self.kiwi.tokenize(x) if t.tag.startswith('N')} & meta.anchors),
                 return_dtype=pl.List(pl.String)
             ).alias("matched_concepts")
