@@ -76,23 +76,25 @@ class HybridMemoryManager:
         if len(self.recent_turns) <= 2: return
         chunk_size = max(1, len(self.recent_turns) // 2)
         turns_to_summarize = self.recent_turns[:chunk_size]
-        self.recent_turns = self.recent_turns[chunk_size:]
-        self._update_summary_batch(turns_to_summarize)
-
-        self._summary_token_count = self._count_tokens(self.past_summary) if self.past_summary else 0
-        self._current_token_count = self._count_tokens("".join([f"{t.speaker}: {t.text}\n" for t in self.recent_turns]))
-
+        
+        # 💡 [수정됨] 요약 성공 여부를 반환받아, 성공했을 때만 원본 배열을 자름
+        success = self._update_summary_batch(turns_to_summarize)
+        if success:
+            self.recent_turns = self.recent_turns[chunk_size:]
+            self._summary_token_count = self._count_tokens(self.past_summary) if self.past_summary else 0
+            self._current_token_count = self._count_tokens("".join([f"{t.speaker}: {t.text}\n" for t in self.recent_turns]))
+            
     def _update_summary_batch(self, turns: List[Turn]):
         new_dialogue = "\n".join([f"{t.speaker}: {t.text}" for t in turns])
-        is_multi = len(set(t.speaker for t in turns if t.speaker != "Moderator")) > 1
         prompt = f"""다음은 대화 내용입니다. 기존 요약본과 새로운 대화를 바탕으로 핵심을 요약해주세요.
 [기존 요약]\n{self.past_summary if self.past_summary else '없음'}
 [추가 대화]\n{new_dialogue}"""
         try:
             self.past_summary = self.gemini_model.generate_content(prompt).text.strip()
-        except Exception:
-            self.past_summary += " | [일부 요약 실패]"
-
+            return True # 성공
+        except Exception as e:
+            print(f"⚠️ 대화 요약 API 호출 실패 (데이터 유지): {e}")
+            return False # 💡 실패 시 False를 반환하여 원본 데이터 유실 방어
     # =====================================================================
     # 💡 [신규 로직] 유관 정보(ML/PIXEL) 관리 및 자동 요약
     # =====================================================================
@@ -116,17 +118,19 @@ class HybridMemoryManager:
             prompt = f"다음 구매 이력을 한 문단으로 요약하세요.\n[기존 요약]: {self.past_ml_summary}\n[추가 이력]: {json.dumps(self.recent_ml, ensure_ascii=False)}"
             try:
                 self.past_ml_summary = self.gemini_model.generate_content(prompt).text.strip()
-            except Exception:
-                pass
-            self.recent_ml = [] # 압축 후 비우기
+                # 💡 [수정됨] 무조건 비우는 것이 아니라, 요약이 성공했을 때만 비움!
+                self.recent_ml = [] 
+            except Exception as e:
+                print(f"⚠️ ML 정보 요약 API 호출 실패 (기억 유지): {e}")
 
         elif target == "PIXEL":
             prompt = f"다음 성향(PIXEL) 데이터를 한 문단으로 요약하세요.\n[기존 요약]: {self.past_pixel_summary}\n[추가 특성]: {json.dumps(self.recent_pixel, ensure_ascii=False)}"
             try:
                 self.past_pixel_summary = self.gemini_model.generate_content(prompt).text.strip()
-            except Exception:
-                pass
-            self.recent_pixel = [] # 압축 후 비우기
+                # 💡 [수정됨] 성공했을 때만 비움!
+                self.recent_pixel = [] 
+            except Exception as e:
+                print(f"⚠️ PIXEL 정보 요약 API 호출 실패 (기억 유지): {e}")
 
     def get_combined_ml(self, base_ml: list) -> list:
         """[Base + 압축된 과거 요약 + 최근 누적] 형태로 병합"""
