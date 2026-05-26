@@ -71,7 +71,15 @@ class PersonaAgent:
                 temperature=0.6
             )
         )
-        response_text = response.text.strip()
-        self.memory.add_interaction(interviewer_input, response_text)
+        try:
+            clean_txt = clean_json_string(response.text)
+            res_data = json.loads(clean_txt)
+            # JSON 스키마에서 실제 발화인 'response'만 추출
+            response_text = res_data.get("response", response.text).strip()
+        except json.JSONDecodeError:
+            # 파싱 실패 시 원본 텍스트라도 반환하도록 폴백
+            response_text = response.text.strip()
+        # =================================================================
 
+        self.memory.add_interaction(interviewer_input, response_text)
         return response_text
