@@ -5,7 +5,7 @@ from typing import List, Tuple
 from google.genai import types
 
 # 💡 깃허브 원본 클래스 임포트
-from SimulationEngine import PersonaAgent
+from PersonaAgent import PersonaAgent
 from ContextManager import FGIDataSchema, ContextManager
 
 class _SharedMemoryRouter:
@@ -203,7 +203,7 @@ class MultiAgentOrchestrator:
             other_names=other_names_str,          # 자유 토론용 상대방 이름 목록 전달
             last_moderator_msg=self.last_moderator_msg # 가상 프롬프트용 백업 질의 전달
         )
-        
+
         sys_inst, user_content = self.ctx.build_prompt(sys_path=active_sys_path, user_path=active_user_path, data=valid_data)
 
         # =====================================================================
