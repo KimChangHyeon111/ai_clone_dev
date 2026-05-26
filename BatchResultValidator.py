@@ -7,6 +7,7 @@ from google.cloud import storage
 from google.genai import Client, types
 from pydantic import BaseModel, Field
 from typing import List, Set, Tuple, Literal, Union
+from utils import *
 
 # =====================================================================
 # 1. 데이터 스키마 정의
@@ -73,7 +74,9 @@ class PromotionMeta:
                 temperature=0.0
             )
         )
-        data = json.loads(response.text)
+        # [수정됨] 공통 함수를 통한 마크다운 제거 후 파싱
+        clean_txt = clean_json_string(response.text)
+        data = json.loads(clean_txt)
         return cls(price=data.get("price", 0), promo_anchors=data.get("promo_anchors", []), promo_info=promo_info)
 
 # =====================================================================
@@ -132,13 +135,15 @@ class BatchResultValidator:
             data = json.loads(line)
             custom_id = data.get('custom_id', 'unknown')
             raw_txt = data['response']['candidates'][0]['content']['parts'][0]['text']
-            clean_txt = re.sub(r'^```json\n|^```|```$', '', raw_txt.strip(), flags=re.MULTILINE).strip()
+            
+            # [수정됨] 공통 함수 적용
+            clean_txt = clean_json_string(raw_txt)
             payload = json.loads(clean_txt)
+            
             validated = SimulationResultSchema(**payload)
             return {"srg_key": custom_id, "is_error": False, **validated.model_dump()}
         except Exception as e:
             return {"srg_key": "unknown", "is_error": True, "error_message": str(e)}
-
     # --- [검증부] ---
     def validate_all(self, df: pl.DataFrame, meta: PromotionMeta) -> Tuple[pl.DataFrame, pl.DataFrame]:
         if df.is_empty(): return pl.DataFrame(), pl.DataFrame()
@@ -229,7 +234,10 @@ class BatchResultValidator:
                     )
                 )
 
-                result = json.loads(response.text)
+                # [수정됨] 공통 함수를 통한 마크다운 제거 후 파싱
+                clean_txt = clean_json_string(response.text)
+                result = json.loads(clean_txt)
+                
                 row['llm_is_valid'] = result.get('is_valid', False)
                 row['llm_judge_reason'] = result.get('judge_reason', '판결 사유 누락')
 
@@ -237,7 +245,7 @@ class BatchResultValidator:
                 print(f"⚠️ 심사 API 에러: {e}")
                 row['llm_is_valid'] = False
                 row['llm_judge_reason'] = f"API Failed: {str(e)}"
-
+                
             results.append(row)
 
         res_df = pl.DataFrame(results)

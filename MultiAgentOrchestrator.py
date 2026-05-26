@@ -7,7 +7,7 @@ from google.genai import types
 # 💡 깃허브 원본 클래스 임포트
 from PersonaAgent import PersonaAgent
 from ContextManager import FGIDataSchema, ContextManager
-
+from utils import *
 class _SharedMemoryRouter:
     """메인 실행 루프에서 .shared_memory.add_interaction 호출 시 호환성을 맞추기 위한 프록시"""
     def __init__(self, orchestrator):
@@ -131,7 +131,7 @@ class MultiAgentOrchestrator:
                 target = self._get_next_agent()
 
         return chat_mode, targeted_agent, target, display_msg
-        
+
     def _retrieve_dynamic_context(self, query_vector: np.ndarray, embeddings: np.ndarray, raw_data: list, threshold: float = 0.7) -> list:
         """
         임계치(threshold) 이상의 데이터를 모두 가져오되,
@@ -258,7 +258,8 @@ class MultiAgentOrchestrator:
         )
 
         try:
-            res_data = json.loads(response.text)
+            clean_txt = clean_json_string(response.text)
+            res_data = json.loads(clean_txt)
             response_text = res_data.get("response", response.text).strip()
         except json.JSONDecodeError:
             response_text = response.text.strip()
