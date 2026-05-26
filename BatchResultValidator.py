@@ -43,7 +43,12 @@ class JudgeDataSchema(BaseModel):
 # 2. 프로모션 메타 관리 (Ground Truth)
 # =====================================================================
 class PromotionMeta:
-    def __init__(self, price: int, promo_anchors: List[str], promo_info: str = ''):
+    def __init__(
+            self,
+            price: int,
+            promo_anchors: List[str],
+            promo_info: str = ''
+        ):
         self.price = price
         self.anchors: Set[str] = set(promo_anchors)
         self.common_nouns = {
@@ -52,17 +57,15 @@ class PromotionMeta:
             "이력", "이용", "구매", "소비", "결제", "히스토리", "지출", "내역" # 이용
         }
         self.anchors = self.anchors | self.common_nouns
-        self.promo_info = promo_info  # 여기서 인스턴스 변수로 할당
+        self.promo_info = promo_info
 
 
     @classmethod
-    def extract(cls, client: Client, context_manager, tmpl_path: str, promo_info: str) -> 'PromotionMeta':
-        # [수정됨] 업데이트된 ContextManager의 단일 템플릿 렌더링 메서드 사용
+    def extract(cls, client: Client, context_manager, tmpl_path: str, promo_info: str, model_name:str = "gemini-2.5-flash-lite") -> 'PromotionMeta':
         # 여기서 시스템이 없는게 약간 이상하네. 이것도 추가해야 할듯.
         prompt = context_manager.render_single_template(tmpl_path, promo_info=promo_info)
-
         response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
+            model=model_name,
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
@@ -80,11 +83,12 @@ class BatchResultValidator:
     def __init__(
             self,
             genai_client: Client,
-            storage_client: storage.Client, 
+            storage_client: storage.Client,
             bucket_name: str,
             context_manager,           # [수정됨] 외부에서 주입받음
             judge_sys_tmpl_path: str,  # [수정됨] 시스템 템플릿 경로
-            judge_user_tmpl_path: str  # [수정됨] 유저 템플릿 경로
+            judge_user_tmpl_path: str,  # [수정됨] 유저 템플릿 경로
+            model_name:str = "gemini-2.5-flash-lite"
     ):
         self.client = genai_client
         self.storage_client = storage_client
@@ -92,7 +96,7 @@ class BatchResultValidator:
 
         print("Kiwi 형태소 분석기 로드 중...")
         self.kiwi = Kiwi()
-        self.model_name = "gemini-2.5-flash-lite"
+        self.model_name = model_name
 
         # [수정됨] 의존성 주입된 변수 저장 (기존 하드코딩 프롬프트 삭제)
         self.context_manager = context_manager
@@ -205,7 +209,7 @@ class BatchResultValidator:
                 reasoning=row.get('reasoning', ''),
                 logic_error_reasons=row.get('logic_error_reasons', [])
             )
-            
+
             # 2. [수정됨] ContextManager를 활용한 프롬프트 동적 생성
             sys_inst, user_content = self.context_manager.build_prompt(
                 sys_path=self.judge_sys_tmpl_path,
@@ -224,7 +228,7 @@ class BatchResultValidator:
                         temperature=0.0
                     )
                 )
-                
+
                 result = json.loads(response.text)
                 row['llm_is_valid'] = result.get('is_valid', False)
                 row['llm_judge_reason'] = result.get('judge_reason', '판결 사유 누락')
@@ -235,9 +239,9 @@ class BatchResultValidator:
                 row['llm_judge_reason'] = f"API Failed: {str(e)}"
 
             results.append(row)
-        
+
         res_df = pl.DataFrame(results)
-        
+
         rescued_df = res_df.filter(pl.col("llm_is_valid") == True)
         confirmed_error_df = res_df.filter(pl.col("llm_is_valid") == False)
 

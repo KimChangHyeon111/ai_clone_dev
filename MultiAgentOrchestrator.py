@@ -26,8 +26,7 @@ class MultiAgentOrchestrator:
         user_tmpl_path: str,
         free_talk_sys_tmpl_path: str,
         free_talk_user_tmpl_path: str,
-        project_id: str,
-        bucket_name: str,
+        embedder_model,            # 💡 [포인트 2] 누락되었던 임베딩 모델을 외부에서 명시적으로 주입 (DI)
         context_manager=None
     ):
         self.names = []
@@ -37,6 +36,7 @@ class MultiAgentOrchestrator:
         self.free_talk_sys_tmpl_path = free_talk_sys_tmpl_path
         self.free_talk_user_tmpl_path = free_talk_user_tmpl_path
         self.ctx = context_manager or ContextManager()
+        self.embedder_model = embedder_model # 💡 명시적 할당
 
         for i, srg_key in enumerate(srg_keys):
             name = f"Customer_{chr(65+i)}"
@@ -67,6 +67,70 @@ class MultiAgentOrchestrator:
         if not self.names: return ""
         idx = self.names.index(self.last_agent)
         return self.names[(idx + 1) % len(self.names)]
+    
+    def _parse_intent_and_target(self, user_input: str) -> Tuple[str, Optional[str], str, str]:
+        """
+        사용자 입력을 파싱하여 대화 모드, 고정 타겟, 발언자, 출력 메시지를 결정합니다.
+        (순수 함수에 가깝게 동작하여 테스트 및 유지보수가 용이해집니다.)
+        """
+        input_upper = user_input.upper().strip()
+        target_candidate = f"Customer_{input_upper}"
+        
+        # 기본적으로 현재 상태를 상속받음
+        chat_mode = self.chat_mode
+        targeted_agent = self.targeted_agent
+        display_msg = ""
+        target = None
+
+        # A. 단일 알파벳 입력 시 (특정 유저 지목 모드 전환)
+        if target_candidate in self.names and len(user_input.strip()) == 1:
+            chat_mode = "TARGETED"
+            targeted_agent = target_candidate
+            target = target_candidate
+
+        # B. 텍스트 내용이 있는 경우
+        elif user_input.strip() != '':
+            if '@FREE_TALK' in input_upper:
+                chat_mode = "FREE_TALK"
+                targeted_agent = None
+                target = self._get_next_agent()
+                display_msg = re.sub(r'@FREE_TALK', '[자유 토론]', user_input, flags=re.IGNORECASE).strip()
+            
+            elif '@ALL' in input_upper or '@모두' in input_upper:
+                chat_mode = "SEQUENTIAL"
+                targeted_agent = None
+                target = self._get_next_agent()
+                display_msg = re.sub(r'@ALL|@모두', '', user_input, flags=re.IGNORECASE).strip()
+            
+            else:
+                mentioned = False
+                for name in self.names:
+                    char = name.split('_')[1]
+                    if re.search(fr'@{char}(?![a-zA-Z])', user_input, re.IGNORECASE):
+                        chat_mode = "TARGETED"
+                        targeted_agent = name
+                        target = name
+                        display_msg = re.sub(fr'@{char}(?![a-zA-Z])', f'@{name}', user_input, flags=re.IGNORECASE).strip()
+                        mentioned = True
+                        break
+                
+                # 멘션이 없으면 현재 모드 유지
+                if not mentioned:
+                    if chat_mode == "TARGETED" and targeted_agent:
+                        target = targeted_agent
+                        display_msg = user_input
+                    else:
+                        target = self._get_next_agent()
+                        display_msg = user_input
+
+        # C. 엔터(공백)만 친 경우
+        else:
+            if chat_mode == "TARGETED" and targeted_agent:
+                target = targeted_agent
+            else:
+                target = self._get_next_agent()
+
+        return chat_mode, targeted_agent, target, display_msg
 
     def process_turn(self, user_input: str, promo_info: str, DEBUG = False, temperature = 0.5) -> Tuple[str, str, str]:
         target = None
@@ -74,80 +138,34 @@ class MultiAgentOrchestrator:
         input_upper = user_input.upper()
 
         # =====================================================================
-        # 1. 3-Way 라우팅 로직
+        # 1. # --- Step 1. 라우팅 로직 호출 및 상태 업데이트 ---
         # =====================================================================
-        target_candidate = f"Customer_{input_upper}"
-
-        if target_candidate in self.names and len(user_input.strip()) == 1:
-            self.chat_mode = "TARGETED"
-            self.targeted_agent = target_candidate
-            target = target_candidate
-
-        elif user_input.strip() != '':
-            if '@FREE_TALK' in input_upper:
-                self.chat_mode = "FREE_TALK"
-                self.targeted_agent = None
-                target = self._get_next_agent()
-                display_msg = re.sub(r'@FREE_TALK', '[자유 토론]', user_input, flags=re.IGNORECASE).strip()
-            elif '@ALL' in input_upper or '@모두' in input_upper:
-                self.chat_mode = "SEQUENTIAL"
-                self.targeted_agent = None
-                target = self._get_next_agent()
-                display_msg = re.sub(r'@ALL|@모두', '', user_input, flags=re.IGNORECASE).strip()
-            else:
-                mentioned = False
-                for name in self.names:
-                    char = name.split('_')[1]
-                    if re.search(fr'@{char}(?![a-zA-Z])', user_input, re.IGNORECASE):
-                        self.chat_mode = "TARGETED"
-                        self.targeted_agent = name
-                        target = name
-                        display_msg = re.sub(fr'@{char}(?![a-zA-Z])', f'@{name}', user_input, flags=re.IGNORECASE).strip()
-                        mentioned = True
-                        break
-                if not mentioned:
-                    if self.chat_mode == "TARGETED" and self.targeted_agent:
-                        target = self.targeted_agent
-                        display_msg = user_input
-                    else:
-                        target = self._get_next_agent()
-                        display_msg = user_input
-        else:
-            if self.chat_mode == "TARGETED" and self.targeted_agent:
-                target = self.targeted_agent
-            else:
-                target = self._get_next_agent()
-
+        chat_mode, targeted_agent, target, display_msg = self._parse_intent_and_target(user_input)
+        
+        self.chat_mode = chat_mode
+        self.targeted_agent = targeted_agent
         if display_msg:
             self.last_moderator_msg = display_msg
 
-        # =====================================================================
-        # 2. 동적 컨텍스트 세팅 및 질문 브로드캐스팅
-        # =====================================================================
         current_name = target
         active_agent = self.agents[current_name]
         is_free_talk = (self.chat_mode == "FREE_TALK")
-
+        # =====================================================================
+        # 2. 동적 컨텍스트 세팅 및 질문 브로드캐스팅
+        # =====================================================================
         active_sys_path = self.free_talk_sys_tmpl_path if is_free_talk else self.sys_tmpl_path
         active_user_path = self.free_talk_user_tmpl_path if is_free_talk else self.user_tmpl_path
 
-        anti_parroting_tag = "\n[SYSTEM RULE (CRITICAL): 다른 참여자의 발언 구조, 단어, 표현을 절대 복사하거나 동조하지 마세요. 의견이 비슷하다면 짧게 동의하고, 같은 단어를 반복하지 마세요.]"
-
         if display_msg:
-            current_context_input = display_msg + anti_parroting_tag
             self.broadcast(speaker="Moderator", text=display_msg, exclude=current_name)
-        else:
-            if is_free_talk:
-                current_context_input = "[자유 토론 진행 중. 앞 사람의 의견에 동의/반박/질문 하세요.]" + anti_parroting_tag
-            else:
-                virtual_prompt = f"{current_name}님, 앞서 드린 질문('{self.last_moderator_msg}')에 대해 응답해주세요 (요청하지 않은 인사, 자기소개 생략, 본론만 즉답 요망)"
-                current_context_input = virtual_prompt + anti_parroting_tag
-                self.broadcast(speaker="Moderator", text=virtual_prompt, exclude=current_name)
-
+        elif not is_free_talk:
+            virtual_prompt = f"{current_name}님, 앞서 드린 질문('{self.last_moderator_msg}')에 대해 응답해주세요."
+            self.broadcast(speaker="Moderator", text=virtual_prompt, exclude=current_name)
         # =====================================================================
         # 3. 모델 발화 및 결과 적재
         # =====================================================================
-        query_vector = self.embedder_model.encode([current_context_input], normalize_embeddings=True).astype(np.float32)
+        embed_query = display_msg if display_msg else (self.last_moderator_msg if not is_free_talk else "[자유 토론]")
+        query_vector = self.embedder_model.encode([embed_query], normalize_embeddings=True).astype(np.float32)
 
         dynamic_ml = self._retrieve_dynamic_context(
             query_vector=query_vector, embeddings=active_agent.ml_embeddings, raw_data=active_agent.full_ml_history, threshold=0.7
@@ -171,15 +189,21 @@ class MultiAgentOrchestrator:
         except TypeError:
             history_str = active_agent.memory.get_formatted_history()
 
+
+        other_names_str = ", ".join([n for n in self.names if n != current_name])
+
         valid_data = FGIDataSchema(
             ms=active_agent.profile.get("ms_core_mindset", ""),
             ml=combined_ml,
             pixel=combined_pixel,
             promo_info=promo_info,
             conversation_history=history_str,
-            user_input=current_context_input
+            user_input=display_msg,               # 순수 질의/명령어 텍스트만 주입 (결합 없음)
+            current_name=current_name,            # 현재 에이전트 이름 전달
+            other_names=other_names_str,          # 자유 토론용 상대방 이름 목록 전달
+            last_moderator_msg=self.last_moderator_msg # 가상 프롬프트용 백업 질의 전달
         )
-
+        
         sys_inst, user_content = self.ctx.build_prompt(sys_path=active_sys_path, user_path=active_user_path, data=valid_data)
 
         # =====================================================================
