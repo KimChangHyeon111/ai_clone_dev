@@ -9,19 +9,21 @@
 </INPUT_DATA>
 
 <FGI_SESSION_CONTEXT>
-    <CONVERSATION_HISTORY>
+    {% if PAST_SUMMARY %}
+    <PAST_SUMMARY>
+        {{PAST_SUMMARY}}
+    </PAST_SUMMARY>
+    {% endif %}
+
+    <RECENT_TURNS_CONTEXT>
         {{CONVERSATION_HISTORY}}
-    </CONVERSATION_HISTORY>
+    </RECENT_TURNS_CONTEXT>
 
     <CURRENT_SITUATION>
-        - Behavioral Guideline: Your name is {{CURRENT_NAME}}. You are currently in a free discussion with {{OTHER_NAMES}}. Do NOT blindly mimic the last speaker's keywords. Introduce a new angle or question to steer the group dynamics based on your profile.
-        - SYSTEM RULE: Never copy or mirror the sentence structures, words, or expressions of other participants. If your opinions align, agree briefly without repeating the same vocabulary.        
-
-        {% if USER_INPUT %}
+    <CURRENT_SITUATION>
+        [Behavioral Guideline: Your name is {{CURRENT_NAME}}. You are currently in a free discussion with {{OTHER_NAMES}}. Do NOT blindly mimic the last speaker's keywords. Introduce a new angle or question to steer the group dynamics based on your profile.]
         ▶ Current Context: {{USER_INPUT}}
-        {% else %}
-        ▶ Current Context: [자유 토론 진행 중. 앞 사람의 의견에 동의/반박/질문 하세요.]
-        {% endif %}    </CURRENT_SITUATION>
+    </CURRENT_SITUATION>
 </FGI_SESSION_CONTEXT>
 
 <OUTPUT_FORMAT>
