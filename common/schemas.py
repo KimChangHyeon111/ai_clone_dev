@@ -18,7 +18,12 @@ class FGIDataSchema(SimulationDataSchema):
 
 class MultiAgentFGIDataSchema(FGIDataSchema):
     current_name: str = Field(default='', description='현재 답변 중인 에이전트 이름', alias='CURRENT_NAME')
-    other_names: str = Field(default='', description='참여 중인 다른 에이전트들의 이름 목록', alias='OTHER_NAMES')
-    # 💡 [핵심 부활] 프롬프트 하드코딩을 없애기 위해 Jinja 템플릿으로 직행할 변수들
-    last_moderator_msg: str = Field(default='', description='직전 모더레이터 질문', alias='LAST_MODERATOR_MSG')
     past_summary: str = Field(default='', description='과거 대화 요약본', alias='PAST_SUMMARY')
+    other_names: str = Field(default='', description='참여 중인 다른 에이전트들의 이름 목록', alias='OTHER_NAMES')
+    last_moderator_msg: str = Field(default='', description='직전 모더레이터 질문', alias='LAST_MODERATOR_MSG')
+
+class MemorySummaryDataSchema(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True, populate_by_name=True)
+    current_name: str = Field(default="", description="현재 에이전트 이름", alias="CURRENT_NAME")
+    past_summary: str = Field(default="없음", description="기존 요약본", alias="PAST_SUMMARY")
+    new_data: str = Field(..., description="새로 추가된 데이터 또는 대화(ML/PIXEL/HISTORY)", alias="NEW_DATA")
