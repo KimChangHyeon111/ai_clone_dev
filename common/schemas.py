@@ -24,6 +24,6 @@ class MultiAgentFGIDataSchema(FGIDataSchema):
 
 class MemorySummaryDataSchema(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, populate_by_name=True)
-    current_name: str = Field(default="", description="현재 에이전트 이름", alias="CURRENT_NAME")
+    agent_name: str = Field(default="", description="현재 에이전트 이름", alias="AGENT_NAME") # ✅ 수정됨
     past_summary: str = Field(default="없음", description="기존 요약본", alias="PAST_SUMMARY")
     new_data: str = Field(..., description="새로 추가된 데이터 또는 대화(ML/PIXEL/HISTORY)", alias="NEW_DATA")
