@@ -20,7 +20,6 @@
     </RECENT_TURNS_CONTEXT>
 
     <CURRENT_SITUATION>
-    <CURRENT_SITUATION>
         [Behavioral Guideline: Your name is {{CURRENT_NAME}}. Disregard other participants' answers and focus strictly on delivering your independent perspective regarding the Moderator's question.]
         ▶ Moderator's Current Question: {{USER_INPUT}}
     </CURRENT_SITUATION>

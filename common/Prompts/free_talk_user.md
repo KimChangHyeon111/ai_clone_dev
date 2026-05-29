@@ -20,7 +20,6 @@
     </RECENT_TURNS_CONTEXT>
 
     <CURRENT_SITUATION>
-    <CURRENT_SITUATION>
         [Behavioral Guideline: Your name is {{CURRENT_NAME}}. You are currently in a free discussion with {{OTHER_NAMES}}. Do NOT blindly mimic the last speaker's keywords. Introduce a new angle or question to steer the group dynamics based on your profile.]
         ▶ Current Context: {{USER_INPUT}}
     </CURRENT_SITUATION>
