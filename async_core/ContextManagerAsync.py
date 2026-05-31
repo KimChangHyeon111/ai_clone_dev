@@ -2,7 +2,6 @@ import re
 import asyncio
 from typing import Any, Dict, List, Optional, Tuple
 
-from google.cloud import storage
 from jinja2 import Template
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -13,29 +12,20 @@ from common.schemas import SimulationDataSchema, FGIDataSchema
 # ---------------------------------------------------------
 class ContextManagerAsync:
     """단일 매니저로 시뮬레이션, FGI, 일반 프롬프트 렌더링을 모두 비동기로 처리합니다."""
-
-    GCS_PATTERN = re.compile(r'^gs://([^/]+)/(.*)$')
-
     def __init__(self):
-        self.storage_client = storage.Client()
         self._template_cache: Dict[str, Template] = {}
-
-    def _parse_gcs_path(self, path: str) -> Tuple[str, str]:
-        match = self.GCS_PATTERN.match(path)
-        if not match:
-            raise ValueError(f"잘못된 GCS 경로 형식입니다: {path}")
-        return match.groups()
 
     # 💡 1. async def로 변경하고 GCS 다운로드 네트워크 I/O 병목 제거
     async def _get_template(self, path: str) -> Template:
         if path in self._template_cache:
             return self._template_cache[path]
 
-        bucket_name, blob_path = self._parse_gcs_path(path)
-        blob = self.storage_client.bucket(bucket_name).blob(blob_path)
+        # 💡 동기식 로컬 파일 읽기를 asyncio.to_thread로 감싸 메인 이벤트 루프 방어
+        def read_file():
+            with open(path, 'r', encoding='utf-8') as f:
+                return f.read()
 
-        # 💡 동기식 GCS 다운로드 함수를 asyncio.to_thread로 감싸 메인 이벤트 루프 방어
-        content = await asyncio.to_thread(blob.download_as_text, encoding='utf-8')
+        content = await asyncio.to_thread(read_file)
 
         template = Template(content)
         self._template_cache[path] = template

@@ -9,31 +9,8 @@ from common.schemas import SimulationDataSchema, FGIDataSchema
 
 class ContextManager:
     """단일 매니저로 시뮬레이션, FGI, 일반 프롬프트 렌더링을 모두 처리합니다."""
-
-    GCS_PATTERN = re.compile(r'^gs://([^/]+)/(.*)$')
-
     def __init__(self):
-        self.storage_client = storage.Client()
         self._template_cache: Dict[str, Template] = {}
-
-    def _parse_gcs_path(self, path: str) -> Tuple[str, str]:
-        """
-        GCS 경로 문자열에서 버킷 이름과 오브젝트 경로를 분리합니다.
-
-        Args:
-            path (str): 'gs://bucket_name/path/to/blob' 형식의 경로.
-
-        Returns:
-            Tuple[str, str]: (버킷 이름, 오브젝트 경로)
-
-        Raises:
-            ValueError: 경로 형식이 올바르지 않은 경우 발생.
-        """
-
-        match = self.GCS_PATTERN.match(path)
-        if not match:
-            raise ValueError(f"잘못된 GCS 경로 형식입니다: {path}")
-        return match.groups()
 
     def _get_template(self, path: str) -> Template:
         """
@@ -52,9 +29,9 @@ class ContextManager:
         if path in self._template_cache:
             return self._template_cache[path]
 
-        bucket_name, blob_path = self._parse_gcs_path(path)
-        blob = self.storage_client.bucket(bucket_name).blob(blob_path)
-        content = blob.download_as_text(encoding='utf-8')
+        # 로컬 파일 읽기
+        with open(path, 'r', encoding='utf-8') as f:
+            content = f.read()
 
         template = Template(content)
         self._template_cache[path] = template
