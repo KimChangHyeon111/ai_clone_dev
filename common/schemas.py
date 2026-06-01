@@ -15,13 +15,13 @@ class SimulationDataSchema(BaseModel):
 class FGIDataSchema(SimulationDataSchema):
     conversation_history: str = Field(default='', description='이전 대화 맥락', alias='CONVERSATION_HISTORY')
     user_input: str = Field(..., description='현재 인터뷰어의 질문 또는 입력', alias='USER_INPUT')
-
+    
 class MultiAgentFGIDataSchema(FGIDataSchema):
     current_name: str = Field(default='', description='현재 답변 중인 에이전트 이름', alias='CURRENT_NAME')
     past_summary: str = Field(default='', description='과거 대화 요약본', alias='PAST_SUMMARY')
     other_names: str = Field(default='', description='참여 중인 다른 에이전트들의 이름 목록', alias='OTHER_NAMES')
     last_moderator_msg: str = Field(default='', description='직전 모더레이터 질문', alias='LAST_MODERATOR_MSG')
-    is_langgraph: bool = Field(default=False, alias="IS_LANGGRAPH")
+    is_langgraph: bool = Field(default=False, description='LANGGRAPH 리팩토링 여부', alias="IS_LANGGRAPH")
     
 class MemorySummaryDataSchema(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, populate_by_name=True)
