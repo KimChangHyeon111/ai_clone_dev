@@ -25,6 +25,7 @@
     </CURRENT_SITUATION>
 </FGI_SESSION_CONTEXT>
 
+{% if not IS_LANGGRAPH%}
 <OUTPUT_FORMAT>
 You MUST strictly follow the JSON schema below. Output ONLY a valid JSON string without markdown blocks.
 {
@@ -36,3 +37,4 @@ You MUST strictly follow the JSON schema below. Output ONLY a valid JSON string 
   "response": "Actual dialogue spoken out loud to the Moderator in Korean."
 }
 </OUTPUT_FORMAT>
+{% endif %}

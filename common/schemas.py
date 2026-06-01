@@ -21,7 +21,8 @@ class MultiAgentFGIDataSchema(FGIDataSchema):
     past_summary: str = Field(default='', description='과거 대화 요약본', alias='PAST_SUMMARY')
     other_names: str = Field(default='', description='참여 중인 다른 에이전트들의 이름 목록', alias='OTHER_NAMES')
     last_moderator_msg: str = Field(default='', description='직전 모더레이터 질문', alias='LAST_MODERATOR_MSG')
-
+    is_langgraph: bool = Field(default=False, alias="IS_LANGGRAPH")
+    
 class MemorySummaryDataSchema(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, populate_by_name=True)
     agent_name: str = Field(default="", description="현재 에이전트 이름", alias="AGENT_NAME") # ✅ 수정됨

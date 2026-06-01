@@ -49,7 +49,7 @@ class ContextManager:
 
         data_dict = data.model_dump(by_alias=True)
 
-        system_instruction = sys_template.render(MS=data_dict.get('MS', ''))
+        system_instruction = sys_template.render(**data_dict)
         user_prompt = user_template.render(**data_dict)
 
         return system_instruction, user_prompt

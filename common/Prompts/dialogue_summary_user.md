@@ -11,11 +11,12 @@
 </INPUT_DATA>
 
 <CURRENT_SITUATION>
-    [Behavioral Guideline: Your identity is {{AGENT_NAME}}. Based on the data above, summarize the latest conversation flow in one or two paragraphs from your 1st-person perspective.]
+    Based on the data above, summarize the conversation from a 3rd-person perspective (e.g., [참여자] Customer_A는 ~라고 언급했습니다.)
 </CURRENT_SITUATION>
 
 <OUTPUT_FORMAT>
 - Do NOT output any introductory or concluding phrases (e.g., "Here is the summary").
 - Do NOT wrap your response in markdown code blocks (```). Return pure text paragraphs.
-- Ensure the Moderator's intent, your ({{AGENT_NAME}}) arguments, and other participants' points are clearly distinguishable.
+- Ensure each participants' points are clearly distinguishable.
+- MUST be written in KOREAN.
 </OUTPUT_FORMAT>
