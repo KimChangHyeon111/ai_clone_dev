@@ -14,15 +14,18 @@
         {{PAST_SUMMARY}}
     </PAST_SUMMARY>
     {% endif %}
-
     <RECENT_TURNS_CONTEXT>
         {{CONVERSATION_HISTORY}}
     </RECENT_TURNS_CONTEXT>
-
-    <CURRENT_SITUATION>
-        [Behavioral Guideline: Your name is {{CURRENT_NAME}}. You are currently in a free discussion with {{OTHER_NAMES}}. Do NOT blindly mimic the last speaker's keywords. Introduce a new angle or question to steer the group dynamics based on your profile.]
-        ▶ Current Context: {{USER_INPUT}}
-    </CURRENT_SITUATION>
+    <CURRENT_CONTEXT>
+        {{USER_INPUT}}
+    </CURRENT_CONTEXT>
+    <BEHAVIORAL_GUIDELINE>
+        1. Your name is {{CURRENT_NAME}}. 
+        2. You are currently in a free discussion with {{OTHER_NAMES}}. 
+        3. Do NOT blindly mimic the last speaker's keywords. 
+        4. React or answer or question or rebut ON [RECENT_TURNS_CONTEXT] based on your profile, emotions, interest_level and [PAST_SUMMARY]
+    </BEHAVIORAL_GUIDELINE>
 </FGI_SESSION_CONTEXT>
 {% if not IS_LANGGRAPH %}
 <OUTPUT_FORMAT>
