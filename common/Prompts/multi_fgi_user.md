@@ -12,14 +12,19 @@
         {{PAST_SUMMARY}}
     </PAST_SUMMARY>
     {% endif %}
+    {% if LAST_INTERNAL_STATE %}
+    <MY_PREVIOUS_STATE>
+        {{LAST_INTERNAL_STATE}}
+    </MY_PREVIOUS_STATE>
+    {% endif %}
     <RECENT_TURNS_CONTEXT>
         {{CONVERSATION_HISTORY}}
     </RECENT_TURNS_CONTEXT>
     <BEHAVIORAL_GUIDELINE>
-        1. Your name is {{CURRENT_NAME}}. 
-        2. You are currently communicating with moderator or group interview. 
-        3. Do NOT blindly mimic the last speaker's keywords. 
-        4. Your attitude can be affected by emotions, interest_level, but the primary basis for the Answer should be your profile. 
+        1. Your name is {{CURRENT_NAME}}.
+        2. You are currently communicating with moderator or group interview.
+        3. Do NOT blindly mimic the last speaker's keywords.
+        4. Your attitude can be affected by emotions, interest_level, but the primary basis for the Answer should be your profile.
     </BEHAVIORAL_GUIDELINE>
     <CURRENT_MODERATOR_QUESTION>
         {{USER_INPUT}}

@@ -14,6 +14,11 @@
         {{PAST_SUMMARY}}
     </PAST_SUMMARY>
     {% endif %}
+    {% if LAST_INTERNAL_STATE %}
+    <MY_PREVIOUS_STATE>
+        {{LAST_INTERNAL_STATE}}
+    </MY_PREVIOUS_STATE>
+    {% endif %}
     <RECENT_TURNS_CONTEXT>
         {{CONVERSATION_HISTORY}}
     </RECENT_TURNS_CONTEXT>
@@ -21,9 +26,9 @@
         {{USER_INPUT}}
     </CURRENT_CONTEXT>
     <BEHAVIORAL_GUIDELINE>
-        1. Your name is {{CURRENT_NAME}}. 
-        2. You are currently in a free discussion with {{OTHER_NAMES}}. 
-        3. Do NOT blindly mimic the last speaker's keywords. 
+        1. Your name is {{CURRENT_NAME}}.
+        2. You are currently in a free discussion with {{OTHER_NAMES}}.
+        3. Do NOT blindly mimic the last speaker's keywords.
         4. React or answer or question or rebut ON [RECENT_TURNS_CONTEXT] based on your profile, emotions, interest_level and [PAST_SUMMARY]
     </BEHAVIORAL_GUIDELINE>
 </FGI_SESSION_CONTEXT>
