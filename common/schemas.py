@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Optional, Tuple
 # ---------------------------------------------------------
 class SimulationDataSchema(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, populate_by_name=True)
-
     ms: str = Field(..., min_length=5, description='페르소나의 핵심 마인드셋', alias='MS')
     ml: Optional[List[Any]] = Field(default=[], description='관련 상품 거래 이력', alias='ML')
     pixel: Optional[List[Any]] = Field(default=[], description='고객 마이크로 어트리뷰트', alias='PIXEL')
@@ -24,8 +23,13 @@ class MultiAgentFGIDataSchema(FGIDataSchema):
     is_langgraph: bool = Field(default=False, description='LANGGRAPH 리팩토링 여부', alias="IS_LANGGRAPH")
     last_internal_state: Optional[str] = Field(default='', description='이전 대화에서의 감정, 관심도, 속마음 상태', alias='LAST_INTERNAL_STATE')
 
-class MemorySummaryDataSchema(BaseModel):
+class DataSummarySchema(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, populate_by_name=True)
     agent_name: str = Field(default="", description="현재 에이전트 이름", alias="AGENT_NAME") # ✅ 수정됨
     past_summary: str = Field(default="없음", description="기존 요약본", alias="PAST_SUMMARY")
     new_data: str = Field(..., description="새로 추가된 데이터 또는 대화(ML/PIXEL/HISTORY)", alias="NEW_DATA")
+
+class DialogueSummarySchema(DataSummarySchema):
+    ms: str = Field(..., min_length=5, description='페르소나의 핵심 마인드셋', alias='MS')
+    last_internal_state: Optional[str] = Field(default='', description='이전 대화에서의 감정, 관심도, 속마음 상태', alias='LAST_INTERNAL_STATE')
+
