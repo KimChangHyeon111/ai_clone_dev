@@ -185,7 +185,7 @@ class InputPreprocessorAsync:
     async def initialize(self):
         await self.cache.initialize()
 
-    async def process_request(self, user_id: str, intent: str, query: str, **kwargs) -> Dict[str, Any]:
+    async def process_request(self, user_id: str, intent: str, query: str, check_cache: bool, **kwargs) -> Dict[str, Any]:
         # 💡 [핵심 개선] 동기식 딥러닝 추론 함수가 이벤트 루프를 막지 않도록 별도 스레드로 분리 실행
         is_safe, reason = await asyncio.to_thread(self.guardrail.is_safe, query)
         if not is_safe:
@@ -193,7 +193,7 @@ class InputPreprocessorAsync:
 
         top_similarity = 0.0
 
-        if intent == "REALTIME_FGI":
+        if intent == "REALTIME_FGI" and check_cache:
             cached_response, similarity = await self.cache.check_cache(user_id, query)
             top_similarity = similarity
             
