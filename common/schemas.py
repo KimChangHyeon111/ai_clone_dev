@@ -33,3 +33,18 @@ class DialogueSummarySchema(DataSummarySchema):
     ms: str = Field(..., min_length=5, description='페르소나의 핵심 마인드셋', alias='MS')
     last_internal_state: Optional[str] = Field(default='', description='이전 대화에서의 감정, 관심도, 속마음 상태', alias='LAST_INTERNAL_STATE')
 
+
+# ---------------------------------------------------------
+# 2. LangGraph FGI 에이전트 LLM 입출력 스키마
+# ---------------------------------------------------------
+class InternalState(BaseModel):
+    reasoning: str = Field(description="Briefly describe your thought process in English. Base it on your CORE_MINDSET.")
+    interest_level: int = Field(description="Integer between 0 and 100 regarding the promotion")
+    emotion: str = Field(description="Current emotional state (e.g., Skeptical, Interested, Indifferent)")
+    target_listener: Optional[str] = Field(default=None, description="The name of the customer you are replying to")
+
+
+class FGIResponse(BaseModel):
+    internal_state: InternalState = Field(description="Customer's internal thought process and state")
+    response: str = Field(description="Actual dialogue spoken out loud in Korean.")
+
