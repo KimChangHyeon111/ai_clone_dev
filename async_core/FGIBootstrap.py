@@ -59,6 +59,27 @@ async def assemble_fgi(
     max_tokens: int = 500,
     debug: bool = False,
 ):
+    """노트북에 떠 있는 객체들을 받아 그래프를 조립해 반환한다.
+
+    DataLoader/ContextManagerAsync를 만들고, build_fgi_graph의 전제조건인
+    find_relevant_ms_faiss/find_relevant_ml과 Redis 캐시 initialize()를 처리한
+    뒤, Vertex AI genai/GCS 클라이언트를 구성해 그래프를 빌드한다.
+
+    Args:
+        embedder_model: DataLoader/retriever가 공유할 SentenceTransformer.
+        main_llm / summary_llm: 응답용 / 요약용 LangChain 챗모델.
+        inputpreprocessor / outputpostprocessor: 이미 생성된 가드레일 래퍼.
+        df_pd_de_tot / df_pixel: 거래 상세 / 픽셀 polars DataFrame.
+        ms_table_path / ml_table_path: DataLoader가 읽을 parquet 경로.
+        promo_item / promo_info / srg_keys: 캠페인 설정과 대상 고객 키.
+        gcp_project / gcp_location / bucket_name: Vertex AI + GCS 자원.
+        ms_top_n/ms_top_m_percent/ml_top_n/ml_top_m_percent: 검색 범위 제한.
+        initialize_preprocessor: 노트북에서 이미 initialize() 했으면 False.
+        max_context_items / max_tokens / debug: 그래프 튜닝/디버그 옵션.
+
+    Returns:
+        (fgi_app, global_agent_profiles, customer_names, promo_info) 튜플.
+    """
     # 1) 컨텍스트 매니저 (가벼움)
     context_manager = ContextManagerAsync()
 
@@ -115,6 +136,11 @@ async def assemble_fgi(
 # 메인 진입점: 조립 후 대화형 루프 실행
 # =====================================================================
 async def main(**kwargs):
+    """assemble_fgi로 그래프를 만든 뒤 대화형 루프를 실행하는 진입점.
+
+    모든 키워드 인자는 assemble_fgi로 그대로 전달된다. Colab에서는
+    ``await main(...)``로 호출한다(asyncio.run은 실행 중 루프와 충돌).
+    """
     debug = kwargs.get("debug", False)
     fgi_app, global_agent_profiles, customer_names, promo_info = await assemble_fgi(**kwargs)
     await run_fgi_simulation_async(

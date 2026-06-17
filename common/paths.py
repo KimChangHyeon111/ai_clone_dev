@@ -1,11 +1,17 @@
+"""
+프롬프트 템플릿 경로 상수 모음.
+
+CWD가 아니라 이 파일 위치(__file__) 기준으로 절대경로를 계산하므로, 패키지로
+쪼개거나 다른 디렉터리에서 실행해도 경로가 깨지지 않는다. 빌더/노드들은
+하드코딩 대신 여기 상수만 import 한다.
+"""
 from pathlib import Path
 
-# 💡 CWD가 아니라 이 파일 위치(__file__) 기준으로 절대경로를 계산한다.
-#    패키지로 쪼개거나 다른 디렉터리에서 실행해도 프롬프트 경로가 깨지지 않는다.
 PROMPTS_DIR = Path(__file__).resolve().parent / "Prompts"
 
 
 def _p(name: str) -> str:
+    """Prompts 디렉터리 기준 파일명을 절대경로 문자열로 변환한다."""
     return str(PROMPTS_DIR / name)
 
 

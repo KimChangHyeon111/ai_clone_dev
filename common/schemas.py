@@ -38,6 +38,7 @@ class DialogueSummarySchema(DataSummarySchema):
 # 2. LangGraph FGI 에이전트 LLM 입출력 스키마
 # ---------------------------------------------------------
 class InternalState(BaseModel):
+    """에이전트의 내면 상태(속마음). LLM이 발화와 함께 구조화 출력으로 채운다."""
     reasoning: str = Field(description="Briefly describe your thought process in English. Base it on your CORE_MINDSET.")
     interest_level: int = Field(description="Integer between 0 and 100 regarding the promotion")
     emotion: str = Field(description="Current emotional state (e.g., Skeptical, Interested, Indifferent)")
@@ -45,6 +46,7 @@ class InternalState(BaseModel):
 
 
 class FGIResponse(BaseModel):
+    """FGI 에이전트의 구조화 응답 = 내면 상태 + 실제 발화."""
     internal_state: InternalState = Field(description="Customer's internal thought process and state")
     response: str = Field(description="Actual dialogue spoken out loud in Korean.")
 

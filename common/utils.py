@@ -10,7 +10,17 @@ def clean_json_string(text: str) -> str:
 
 
 def debug_node(func):
-    """LangGraph 노드 진입/완료/에러를 로깅하는 데코레이터 (동기/비동기 모두 지원)."""
+    """LangGraph 노드 진입/완료/에러를 로깅하는 데코레이터.
+
+    동기/비동기 함수를 모두 감싼다(코루틴이면 async 래퍼). 노드 이름과 소요시간을
+    출력하고, 예외는 로깅 후 그대로 다시 raise 한다.
+
+    Args:
+        func: 감쌀 노드 함수(첫 인자로 state를 받는 시그니처).
+
+    Returns:
+        로깅이 입혀진 동일 시그니처의 래퍼 함수.
+    """
     if inspect.iscoroutinefunction(func):
         @functools.wraps(func)
         async def async_wrapper(state, *args, **kwargs):

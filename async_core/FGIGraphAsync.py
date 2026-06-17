@@ -1,3 +1,10 @@
+"""
+FGI LangGraph 조립(build)·라우팅·대화형 실행 루프 — 패키지의 진입 모듈.
+
+``build_fgi_graph``가 모든 노드/엣지를 배선해 컴파일된 앱을 만들고,
+``run_fgi_simulation_async``가 진행자 입력을 받아 턴을 스트리밍 실행한다.
+실시간 FGI 흐름과 대량 시뮬레이션 서브그래프를 한 그래프에 합친다.
+"""
 import uuid
 import asyncio
 import numpy as np
@@ -35,6 +42,11 @@ from async_core.MassSimulationNodesAsync import register_mass_simulation
 # 라우팅 함수 (그래프 조립 로직)
 # =====================================================================
 def route_after_preprocess(state: FGIState):
+    """전처리 결과에 따라 다음 노드를 고르는 조건부 엣지.
+
+    BLOCKED/CACHE_HIT이면 즉시 종료(END), MASS_SIMULATION 인텐트면
+    ``mass_data_loader``, 그 외에는 실시간 FGI ``router``로 보낸다.
+    """
     status = state.get("preprocessor_status")
     if status == "BLOCKED" or status == "CACHE_HIT":
         return END
@@ -44,6 +56,10 @@ def route_after_preprocess(state: FGIState):
 
 
 def route_after_postprocess(state: FGIState):
+    """출력 검열 결과에 따라 분기하는 조건부 엣지.
+
+    BLOCKED면 즉시 턴 종료(END), SAFE면 요약 트리거(``dialogue_summary_trigger``)로.
+    """
     status = state.get("postprocessor_status", "SAFE")
     if status == "BLOCKED":
         return END  # 차단 시 즉시 대화 턴 종료
@@ -61,6 +77,33 @@ def build_fgi_graph(
     genai_client, storage_client, bucket_name: str,   # Mass Simulation용
     max_context_items: int = 5, max_tokens: int = 500, debug: bool = False
 ):
+    """모든 노드/엣지를 배선해 컴파일된 FGI LangGraph 앱을 만든다.
+
+    각 srg_key로 페르소나 프로필을 만들어 에이전트 노드를 등록하고, 실시간 FGI
+    흐름(전처리→라우터→검색→에이전트→후처리→요약)과 대량 시뮬레이션
+    서브그래프를 연결한 뒤 MemorySaver 체크포인터로 컴파일한다.
+
+    주의: 호출 전에 data_loader의 find_relevant_ms_faiss / find_relevant_ml이
+    선행돼 있어야 한다(get_fgi_profile 전제조건). FGIBootstrap.assemble_fgi가
+    이를 책임진다.
+
+    Args:
+        data_loader: 페르소나 프로필/대량 대상 조회용 DataLoader(필터링 선행 필요).
+        promo_item / promo_info: 캠페인 상품명/정보.
+        embedder_model: 검색 임베딩용 SentenceTransformer.
+        srg_keys: FGI 에이전트로 만들 고객 키 목록.
+        df_pd_de_tot / df_pixel: 거래 상세 / 픽셀 polars DataFrame.
+        main_llm / summary_llm: 응답용 / 요약용 LangChain 챗모델.
+        context_manager: 프롬프트 렌더링용 ContextManagerAsync.
+        inputpreprocessor / outputpostprocessor: 입력·출력 가드레일 래퍼.
+        genai_client / storage_client / bucket_name: 대량 시뮬레이션 GCP 자원.
+        max_context_items: ML/PIXEL 요약 트리거 임계 개수.
+        max_tokens: 대화 요약 트리거 토큰 임계값.
+        debug: 디버그 로그 출력 여부.
+
+    Returns:
+        (fgi_app, global_agent_profiles, customer_names) 튜플.
+    """
     ctx_manager = context_manager
 
     alphabet_mapping = {srg_key: chr(65 + i) for i, srg_key in enumerate(srg_keys)}
@@ -188,6 +231,19 @@ def build_fgi_graph(
 async def run_fgi_simulation_async(
     fgi_app, global_agent_profiles: dict, customer_names: list, promo_info: str, debug: bool = False
 ):
+    """대화형 진행자 루프를 돌리며 매 입력을 그래프로 스트리밍 실행한다.
+
+    초기 State를 주입한 뒤, 진행자 입력을 받아(quit/exit로 종료) astream으로
+    노드별 업데이트를 받아 화면에 정리해 출력한다(가드레일/에이전트 발화/요약/
+    대량 시뮬 상태). 단일 thread_id로 대화 맥락을 유지한다.
+
+    Args:
+        fgi_app: build_fgi_graph가 반환한 컴파일된 앱.
+        global_agent_profiles: 에이전트별 임베딩/이력 프로필.
+        customer_names: 참여 에이전트 이름 목록.
+        promo_info: 초기 State에 넣을 캠페인 정보.
+        debug: 상세 로그 출력 여부.
+    """
     print("=" * 60)
     print("🎤 [비동기(Async) FGI 시뮬레이션 환경 - LangGraph Ver] 🎤")
     print("  * 지원 모드: 1:1 집중(A입력), 멘션(@A), 전체순차(@ALL), 자유토론(@FREE_TALK)")
